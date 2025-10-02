@@ -8,7 +8,7 @@ SUBSCRIPTION_ID = "gmail-sub"    # du skal have oprettet en subscription i Pub/S
 def callback(message):
     try:
         # Decode Pub/Sub message
-        data = json.loads(base64.b64decode(message.data).decode("utf-8"))
+        data = json.loads(base64.b64decode(message.data).decode("utf-8")) #alle beskeder leveres i base64 derfor decoder vi
         print("📩 Ny Gmail notifikation:")
         print(json.dumps(data, indent=2))
 
