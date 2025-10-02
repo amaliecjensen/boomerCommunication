@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
 
-load_dotenv() #loader enviroment variables
+load_dotenv()  # loader enviroment variables
 
 # Get openai key
 openai_api_key = os.environ.get("OPENAI_API_KEY")
