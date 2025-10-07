@@ -11,15 +11,7 @@ def main():
     credentials_file = "credentials.json"
     
     if not os.path.exists(credentials_file):
-        print(f"❌ Fejl: {credentials_file} findes ikke!")
-        print("\n📋 For at få Google OAuth credentials:")
-        print("1. Gå til https://console.cloud.google.com/")
-        print("2. Opret et nyt projekt eller vælg eksisterende")
-        print("3. Aktiver Gmail API")
-        print("4. Gå til 'Credentials' > 'Create Credentials' > 'OAuth client ID'")
-        print("5. Vælg 'Desktop application'")
-        print("6. Download JSON filen og gem den som 'credentials.json' i dette projekt")
-        print("\n💡 Tip: Filen skal hedde 'credentials.json' og ligge i samme mappe som dette script")
+        print(f" Fejl: {credentials_file} findes ikke")
         sys.exit(1)
     
     try:
@@ -31,11 +23,12 @@ def main():
         with open("token.json", "w") as token:
             token.write(creds.to_json())
 
-        print("✅ Login OK – token gemt!")
+        print("Login OK – token gemt!")
         
     except Exception as e:
-        print(f"❌ Fejl under godkendelse: {e}")
+        print(f"Fejl under godkendelse: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
     main()
+
