@@ -3,11 +3,13 @@ from googleapiclient.discovery import build
 import os
 import sys
 
-# Vi skal kun bruge readonly adgang i starten
+#denne py fil bruges til at give systemet adgang til gmail, uden at jeg skal logge ind igen. 
+
+# Vi skal kun bruge readonly adgang i starten, bruges til at anmode om tilladelse
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 def main():
-    # Check for credentials file
+    # Check for credentials file exists
     credentials_file = "credentials.json"
     
     if not os.path.exists(credentials_file):
