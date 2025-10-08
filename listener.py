@@ -12,13 +12,14 @@ open_api_key = os.environ.get("OPENAI_API_KEY")
 llm = ChatOpenAI(api_key=open_api_key, model="gpt-3.5-turbo", temperature=0)
 
 # Sæt Google Cloud credentials
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account.json"
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"] #tillader mig at læse mails
 PROJECT_ID = "n8namalie"  
 SUBSCRIPTION_ID = "gmail-sub"    
 
 def get_new_emails(history_id):
+    """Hent nye emails siden history_id"""
     try:
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
         service = build("gmail", "v1", credentials=creds)
@@ -28,31 +29,19 @@ def get_new_emails(history_id):
             startHistoryId=history_id
         ).execute()
         
-        # Parse emails fra history
         emails = []
         for history_item in result.get('history', []):
             for message in history_item.get('messagesAdded', []):
                 msg_id = message['message']['id']
+                msg = service.users().messages().get(userId='me', id=msg_id, format='metadata').execute()
                 
-                msg = service.users().messages().get(userId='me', id=msg_id).execute()
-                
-                headers = msg['payload'].get('headers', [])
-                sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown')
-                subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
-                
-                body = ""
-                if 'parts' in msg['payload']:
-                    for part in msg['payload']['parts']:
-                        if part['mimeType'] == 'text/plain' and part['body'].get('data'):
-                            body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
-                            break
-                elif msg['payload']['body'].get('data'):
-                    body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
+                # Simpel header parsing
+                headers = {h['name']: h['value'] for h in msg['payload'].get('headers', [])}
                 
                 emails.append({
-                    'sender': sender,
-                    'subject': subject,
-                    'body': body[:300]
+                    'sender': headers.get('From', 'Unknown'),
+                    'subject': headers.get('Subject', 'No Subject'),
+                    'body': f"Email fra {headers.get('From', 'Unknown')}"  # Simplified body
                 })
         
         return emails
@@ -78,37 +67,41 @@ Answer precisely with:
 {{
   "isImportant": true/false,
   "reason": "brief explanation",
-  "summary": "brief summary (max 3 sentences, only if isImportant=true)"
+  "summary": "brief summary explaining the content (max 3 sentences, only if isImportant=true)"
 }}
 """
     try:
         response = llm.invoke(prompt)
-        return json.loads(response.content.strip())
+        return json.loads(response.content.strip()) #denne linje udtrækker svaret uden whitespaces
     except Exception as e:
         print(f"Fejl ved evaluering: {e}")
         return {"isImportant": False, "reason": "Fejl ved evaluering", "summary": ""}
 
 def handle_gmail_notifications(message):
     try:
-        data = json.loads(base64.b64decode(message.data).decode("utf-8")) #decoder da vi modtager data krypteret
+        # Simpel decoding - prøv begge metoder
+        try:
+            data = json.loads(base64.b64decode(message.data).decode("utf-8"))
+        except:
+            data = json.loads(message.data.decode("utf-8"))
+        
         print("New gmail notification:")
         print(json.dumps(data, indent=2))
-        history_id = data['historyId']
-
-        # metodekals
-        new_emails = get_new_emails(history_id)
+        
+        # Tjek historyId og hent emails
+        if 'historyId' not in data:
+            print("Ingen historyId fundet")
+            message.ack()
+            return
+            
+        new_emails = get_new_emails(data['historyId'])
 
         if new_emails:
             print(f"Found {len(new_emails)} new emails")
             
             # Evaluer hver email
             for email in new_emails:
-                # Kald evaluate_email for at lave evt. resume
-                evaluation = evaluate_email(
-                    email['sender'], 
-                    email['subject'], 
-                    email['body']
-                )
+                evaluation = evaluate_email(email['sender'], email['subject'], email['body'])
                 
                 if evaluation['isImportant']:
                     print("IMPORTANT EMAIL found!")
@@ -123,7 +116,7 @@ def handle_gmail_notifications(message):
         message.ack() #sender besked til google cloud pub/sub om at beskeden blev behandlet succesfuldt
 
     except Exception as e:
-        print("Error in gmail notification handler:", e)
+        print(f"Error in gmail notification handler: {e}")
         message.nack()
 
 def main():
