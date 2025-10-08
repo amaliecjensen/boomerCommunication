@@ -74,12 +74,12 @@ Content: {body}
    - Whether it comes from a known sender (manager, customer, business partner).
    - Whether it contains time-critical information (deadline, meeting, approval).
    - Whether it relates to a current project or responsibility.
+   -If the email is imortant, always start the summary with: "You have received an important email!" and then the summary after
 
 Answer precisely with valid JSON max using 20 words(no trailing commas):
 {{
   "isImportant": true,
-  "reason": "brief explanation",
-  "summary": "brief summary explaining the content (max 3 sentences, only if isImportant=true)"
+  "summary": [very short summary max 10 words]"
 }}
 """
     try:
@@ -88,9 +88,7 @@ Answer precisely with valid JSON max using 20 words(no trailing commas):
         
         import re
         response_text = re.sub(r',(\s*[}\]])', r'\1', response_text)
-        
-        print(f"ChatGPT response: {response_text}")
-        
+                
         return json.loads(response_text) #denne linje udtrækker svaret uden whitespaces
     except Exception as e:
         print(f"Fejl ved evaluering: {e}")
@@ -105,7 +103,7 @@ def send_message_to_phone(message_data):
     message = client.messages.create(
         from_='+12182745166',
         body=message_data,
-        to='+4520209628'
+        to='+4541862174'
     )
 
     print(message.sid)
@@ -137,12 +135,10 @@ def handle_gmail_notifications(message):
                 evaluation = evaluate_email(email['sender'], email['subject'], email['body'])
                 
                 if evaluation['isImportant']:
-                   message_text = f"{evaluation['reason']} - Resume: {evaluation['summary']}"
-                   send_message_to_phone(message_text)
+                   send_message_to_phone(f"You have received an important email! {evaluation['summary']}")
                    print(f"MESSAGE SENT TO PHONE")
                 else:
                     print("Normal email")
-                    print(f"Grund: {evaluation['reason']}")
         else:
             print("No new emails found")
 
