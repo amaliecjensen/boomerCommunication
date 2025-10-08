@@ -24,26 +24,37 @@ def get_new_emails(history_id):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
         service = build("gmail", "v1", credentials=creds)
         
-        result = service.users().history().list(
+        print(f"Søger emails siden historyId: {history_id}")
+        
+        # Hent seneste emails direkte i stedet for history
+        result = service.users().messages().list(
             userId='me',
-            startHistoryId=history_id
+            labelIds=['INBOX'],
+            maxResults=1
         ).execute()
         
-        emails = []
-        for history_item in result.get('history', []):
-            for message in history_item.get('messagesAdded', []):
-                msg_id = message['message']['id']
-                msg = service.users().messages().get(userId='me', id=msg_id, format='metadata').execute()
-                
-                # Simpel header parsing
-                headers = {h['name']: h['value'] for h in msg['payload'].get('headers', [])}
-                
-                emails.append({
-                    'sender': headers.get('From', 'Unknown'),
-                    'subject': headers.get('Subject', 'No Subject'),
-                    'body': f"Email fra {headers.get('From', 'Unknown')}"  # Simplified body
-                })
+        print(f"Gmail API response: {result}")
         
+        emails = []
+        messages = result.get('messages', [])
+        print(f"Fundet {len(messages)} messages")
+        
+        for message in messages:
+            msg_id = message['id']
+            print(f"Behandler message ID: {msg_id}")
+            
+            msg = service.users().messages().get(userId='me', id=msg_id, format='metadata').execute()
+            headers = {h['name']: h['value'] for h in msg['payload'].get('headers', [])}
+            
+            print(f"Email fra: {headers.get('From')} - Emne: {headers.get('Subject')}")
+            
+            emails.append({
+                'sender': headers.get('From', 'Unknown'),
+                'subject': headers.get('Subject', 'No Subject'),
+                'body': f"Email fra {headers.get('From', 'Unknown')}"  # Simplified body
+            })
+        
+        print(f"Returnerer {len(emails)} emails")
         return emails
     except Exception as e:
         print(f"Fejl ved hentning af emails: {e}")
@@ -63,18 +74,26 @@ Content: {body}
    - Whether it contains time-critical information (deadline, meeting, approval).
    - Whether it relates to a current project or responsibility.
 
-Answer precisely with:
+Answer precisely with valid JSON (no trailing commas):
 {{
-  "isImportant": true/false,
+  "isImportant": true,
   "reason": "brief explanation",
   "summary": "brief summary explaining the content (max 3 sentences, only if isImportant=true)"
 }}
 """
     try:
         response = llm.invoke(prompt)
-        return json.loads(response.content.strip()) #denne linje udtrækker svaret uden whitespaces
+        response_text = response.content.strip()
+        
+        import re
+        response_text = re.sub(r',(\s*[}\]])', r'\1', response_text)
+        
+        print(f"ChatGPT response: {response_text}")
+        
+        return json.loads(response_text) #denne linje udtrækker svaret uden whitespaces
     except Exception as e:
         print(f"Fejl ved evaluering: {e}")
+        print(f"Raw response: {response.content if 'response' in locals() else 'No response'}")
         return {"isImportant": False, "reason": "Fejl ved evaluering", "summary": ""}
 
 def handle_gmail_notifications(message):
