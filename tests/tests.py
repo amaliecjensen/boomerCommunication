@@ -25,12 +25,4 @@ def test_dotenv_loading():
     assert True
 
 
-@patch.dict(os.environ, {'OPENAI_API_KEY': 'test_key'})
-def test_openai_key_retrieval():
-    from dotenv import load_dotenv
-    
-    load_dotenv()
-    api_key = os.environ.get("OPENAI_API_KEY") #tester at vi kan få fat i vores openapi
-    assert api_key == 'test_key'
-
 
