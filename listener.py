@@ -1,5 +1,6 @@
 from google.cloud import pubsub_v1
 import json
+from twilio.rest import Client
 import base64
 import os
 from dotenv import load_dotenv
@@ -74,7 +75,7 @@ Content: {body}
    - Whether it contains time-critical information (deadline, meeting, approval).
    - Whether it relates to a current project or responsibility.
 
-Answer precisely with valid JSON (no trailing commas):
+Answer precisely with valid JSON max using 20 words(no trailing commas):
 {{
   "isImportant": true,
   "reason": "brief explanation",
@@ -95,6 +96,19 @@ Answer precisely with valid JSON (no trailing commas):
         print(f"Fejl ved evaluering: {e}")
         print(f"Raw response: {response.content if 'response' in locals() else 'No response'}")
         return {"isImportant": False, "reason": "Fejl ved evaluering", "summary": ""}
+    
+def send_message_to_phone(message_data):
+    account_sid = os.environ["account_sid"]
+    auth_token = os.environ["auth_token"]
+    client = Client(account_sid, auth_token)
+
+    message = client.messages.create(
+        from_='+12182745166',
+        body=message_data,
+        to='+4520209628'
+    )
+
+    print(message.sid)
 
 def handle_gmail_notifications(message):
     try:
@@ -123,9 +137,9 @@ def handle_gmail_notifications(message):
                 evaluation = evaluate_email(email['sender'], email['subject'], email['body'])
                 
                 if evaluation['isImportant']:
-                    print("IMPORTANT EMAIL found!")
-                    print(f"Grund: {evaluation['reason']}")
-                    print(f"Resume: {evaluation['summary']}")
+                   message_text = f"{evaluation['reason']} - Resume: {evaluation['summary']}"
+                   send_message_to_phone(message_text)
+                   print(f"MESSAGE SENT TO PHONE")
                 else:
                     print("Normal email")
                     print(f"Grund: {evaluation['reason']}")
@@ -152,3 +166,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
