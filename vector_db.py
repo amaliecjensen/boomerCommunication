@@ -1,4 +1,5 @@
 #husk at give persist_directory for at min chromadb ikke skal køre in-memory mode
+#hej
 import chromadb
 
 def setup_database():
@@ -10,7 +11,7 @@ def setup_database():
 
 client, collection = setup_database()
 
-def save_emails(sender, subject, body, isImportant):
+def save_emails(sender, subject, body, isImportant, historyid):
 
     data = {
         ids=[],
