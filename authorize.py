@@ -28,7 +28,6 @@ def main():
         print("Login OK – token gemt!")
         
     except Exception as e:
-        print(f"Fejl under godkendelse: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
