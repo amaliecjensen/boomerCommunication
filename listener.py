@@ -20,12 +20,9 @@ PROJECT_ID = "n8namalie"
 SUBSCRIPTION_ID = "gmail-sub"    
 
 def get_new_emails(history_id):
-    """Hent nye emails siden history_id"""
     try:
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
         service = build("gmail", "v1", credentials=creds)
-        
-        print(f"Søger emails siden historyId: {history_id}")
         
         # Hent seneste emails direkte i stedet for history
         result = service.users().messages().list(
@@ -34,31 +31,23 @@ def get_new_emails(history_id):
             maxResults=1
         ).execute()
         
-        print(f"Gmail API response: {result}")
-        
         emails = []
         messages = result.get('messages', [])
-        print(f"Fundet {len(messages)} messages")
         
         for message in messages:
             msg_id = message['id']
-            print(f"Behandler message ID: {msg_id}")
             
             msg = service.users().messages().get(userId='me', id=msg_id, format='metadata').execute()
             headers = {h['name']: h['value'] for h in msg['payload'].get('headers', [])}
             
-            print(f"Email fra: {headers.get('From')} - Emne: {headers.get('Subject')}")
-            
             emails.append({
                 'sender': headers.get('From', 'Unknown'),
                 'subject': headers.get('Subject', 'No Subject'),
-                'body': f"Email fra {headers.get('From', 'Unknown')}"  # Simplified body
+                'body': f"Email fra {headers.get('From', 'Unknown')}"  
             })
         
-        print(f"Returnerer {len(emails)} emails")
         return emails
     except Exception as e:
-        print(f"Fejl ved hentning af emails: {e}")
         return []
 
 def evaluate_email(sender, subject, body):
@@ -69,12 +58,11 @@ Sender: {sender}
 Subject: {subject}
 Content: {body}
 
-1. Evaluate if the email is important for the recipient, based on criteria such as:
+1. Evaluate if the email is important for the recipient, based on criteria:
    - Whether it requires action, decision or response.
    - Whether it comes from a known sender (manager, customer, business partner).
    - Whether it contains time-critical information (deadline, meeting, approval).
    - Whether it relates to a current project or responsibility.
-   -If the email is imortant, always start the summary with: "You have received an important email!" and then the summary after
 
 Answer precisely with valid JSON max using 20 words(no trailing commas):
 {{
@@ -86,13 +74,12 @@ Answer precisely with valid JSON max using 20 words(no trailing commas):
         response = llm.invoke(prompt)
         response_text = response.content.strip()
         
-        import re
+        import re #regrex
         response_text = re.sub(r',(\s*[}\]])', r'\1', response_text)
                 
         return json.loads(response_text) #denne linje udtrækker svaret uden whitespaces
     except Exception as e:
-        print(f"Fejl ved evaluering: {e}")
-        print(f"Raw response: {response.content if 'response' in locals() else 'No response'}")
+        print(f"Failed evaluation: {e}")
         return {"isImportant": False, "reason": "Fejl ved evaluering", "summary": ""}
     
 def send_message_to_phone(message_data):
@@ -103,32 +90,26 @@ def send_message_to_phone(message_data):
     message = client.messages.create(
         from_='+12182745166',
         body=message_data,
-        to='+4541862174'
+        to='+4520209628'
     )
-
-    print(message.sid)
 
 def handle_gmail_notifications(message):
     try:
-        # Simpel decoding - prøv begge metoder
         try:
             data = json.loads(base64.b64decode(message.data).decode("utf-8"))
         except:
             data = json.loads(message.data.decode("utf-8"))
         
-        print("New gmail notification:")
-        print(json.dumps(data, indent=2))
+        print("New gmail notification!!:")
         
         # Tjek historyId og hent emails
         if 'historyId' not in data:
-            print("Ingen historyId fundet")
             message.ack()
             return
             
         new_emails = get_new_emails(data['historyId'])
 
         if new_emails:
-            print(f"Found {len(new_emails)} new emails")
             
             # Evaluer hver email
             for email in new_emails:
@@ -145,14 +126,11 @@ def handle_gmail_notifications(message):
         message.ack() #sender besked til google cloud pub/sub om at beskeden blev behandlet succesfuldt
 
     except Exception as e:
-        print(f"Error in gmail notification handler: {e}")
         message.nack()
 
 def main():
     subscriber = pubsub_v1.SubscriberClient() #opretter forbindelse til google cloud pub/sub
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
-
-    print(f"Lytter på Pub/Sub subscription: {subscription_path}")
     streaming_pull_future = subscriber.subscribe(subscription_path, callback=handle_gmail_notifications) #kalder handle_gmail_notifications hver gange en besked kommer
 
     try:
