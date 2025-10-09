@@ -37,13 +37,24 @@ def get_new_emails(history_id):
         for message in messages:
             msg_id = message['id']
             
-            msg = service.users().messages().get(userId='me', id=msg_id, format='metadata').execute()
+         # Hent FULDE email med body i stedet for kun metadata
+            msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
             headers = {h['name']: h['value'] for h in msg['payload'].get('headers', [])}
+            
+            # Udtræk email body
+            body = ""
+            if 'parts' in msg['payload']:
+                for part in msg['payload']['parts']:
+                    if part['mimeType'] == 'text/plain':
+                        body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                        break
+            elif msg['payload']['body'].get('data'):
+                body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
             
             emails.append({
                 'sender': headers.get('From', 'Unknown'),
                 'subject': headers.get('Subject', 'No Subject'),
-                'body': f"Email fra {headers.get('From', 'Unknown')}"  
+                'body': body[:500]  # Første 500 karakterer af email indhold
             })
         
         return emails
@@ -67,7 +78,7 @@ Content: {body}
 Answer precisely with valid JSON max using 20 words(no trailing commas):
 {{
   "isImportant": true,
-  "summary": [very short summary max 10 words]"
+  "summary": "very short summary max 10 words"
 }}
 """
     try:
@@ -80,7 +91,7 @@ Answer precisely with valid JSON max using 20 words(no trailing commas):
         return json.loads(response_text) #denne linje udtrækker svaret uden whitespaces
     except Exception as e:
         print(f"Failed evaluation: {e}")
-        return {"isImportant": False, "reason": "Fejl ved evaluering", "summary": ""}
+        return {"isImportant": False, "summary": ""}
     
 def send_message_to_phone(message_data):
     account_sid = os.environ["account_sid"]
