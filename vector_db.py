@@ -21,7 +21,7 @@ def save_emails(sender, subject, body, isImportant, historyid):
 
 
 #simple typer som chroma kan filtrere på
-    {
+    metadata = {
   "sender": sender,
   "subject": subject,
   "isImportant": isImportant,

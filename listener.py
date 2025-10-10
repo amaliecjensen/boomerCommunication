@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
+from vector_db import save_emails
 
 load_dotenv() #load env variables
 open_api_key = os.environ.get("OPENAI_API_KEY")
