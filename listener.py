@@ -121,11 +121,20 @@ def handle_gmail_notifications(message):
             
         new_emails = get_new_emails(data['historyId'])
 
+
         if new_emails:
             
             # Evaluer hver email
             for email in new_emails:
                 evaluation = evaluate_email(email['sender'], email['subject'], email['body'])
+
+                save_emails(
+                    sender=email['sender'],
+                    subject=email['subject'],
+                    body=email['body'],
+                    isImportant=evaluation['isImportant'],
+                    historyid=data['historyId']
+                )
                 
                 if evaluation['isImportant']:
                    send_message_to_phone(f"You have received an important email! {evaluation['summary']}")
