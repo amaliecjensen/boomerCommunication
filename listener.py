@@ -37,7 +37,7 @@ def get_new_emails(history_id):
         for message in messages:
             msg_id = message['id']
             
-         # Hent FULDE email med body i stedet for kun metadata
+         # Hent fulde email
             msg = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
             headers = {h['name']: h['value'] for h in msg['payload'].get('headers', [])}
             

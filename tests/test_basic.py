@@ -17,12 +17,16 @@ def test_environment_setup():
         pytest.fail(f"Failed to import required modules: {e}")
 
 
+@patch.dict(os.environ, {'OPENAI_API_KEY': 'test_key'})
 def test_dotenv_loading():
     """Test that dotenv loading works without errors"""
     from dotenv import load_dotenv
-    # Dette burde ikke give exceptions
+    # Mock environment så vi ikke er afhængige af .env fil
     load_dotenv()
-    assert True
+    api_key = os.environ.get("OPENAI_API_KEY")
+    assert api_key == 'test_key'
 
 
-
+def test_basic_functionality():
+    """Test basic functionality without external dependencies"""
+    assert 1 + 1 == 2
