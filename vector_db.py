@@ -35,3 +35,24 @@ def save_emails(sender, subject, body, isImportant, historyid):
     )
     print(f"saved data to DB")
     
+def view_all_emails():
+    try: 
+        results = collection.get()
+        if results['ids']:
+             for i, email_id in enumerate(results['ids']):
+                metadata = results['metadatas'][i]
+                document = results['documents'][i]
+                
+                print(f"\nEmail {i+1}:")
+                print(f"ID: {email_id}")
+                print(f"Sender: {metadata['sender']}")
+                print(f"Important: {metadata['isImportant']}")
+                print("-" * 30)
+        else:
+            print("No emails in database")
+            
+    except Exception as e:
+        print(f"Failed reading database: {e}")
+
+
+view_all_emails()

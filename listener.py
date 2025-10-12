@@ -76,7 +76,7 @@ Content: {body}
    - Whether it contains time-critical information (deadline, meeting, approval).
    - Whether it relates to a current project or responsibility.
 
-Answer precisely with valid JSON max using 20 words(no trailing commas):
+Answer precisely with valid JSON max using 20 words(no trailing commas), always include theshort summary, explaining what the email is about:
 {{
   "isImportant": true,
   "summary": "very short summary max 10 words"
