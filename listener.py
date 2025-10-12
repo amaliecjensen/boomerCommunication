@@ -113,11 +113,6 @@ def handle_gmail_notifications(message):
             data = json.loads(message.data.decode("utf-8"))
         
         print("New gmail notification!!:")
-        
-        # Tjek historyId og hent emails
-        if 'historyId' not in data:
-            message.ack()
-            return
             
         new_emails = get_new_emails(data['historyId'])
 
@@ -156,7 +151,7 @@ def main():
 
     try:
         streaming_pull_future.result()  # blokerer og holder connection åben
-    except KeyboardInterrupt:
+    except KeyboardInterrupt: #ctrl+c interrupt 
         streaming_pull_future.cancel()
 
 if __name__ == "__main__":
